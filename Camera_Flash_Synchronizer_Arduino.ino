@@ -1,30 +1,28 @@
+/*
+* Serial Communication: RX0(D0) TX0(D1)
+* 27 Camera:  D2-D28      
+* 27 Hotshoe: D29-D55 
+* 14 Flash:   D56-D69  (=> A2-A15)
+*/
 
-int numCameraPin  = 28;
-int numHotshoePin = 28;
+int numCameraPin  = 27;
+int numHotshoePin = 27;
 int numFlashPin   = 14;
 
-int cameraPin[28];  //0-27
-int hotshoePin[28]; //28-55
+int cameraPin[27];  //2-28
+int hotshoePin[27]; //29-55
 int flashPin[14];   //56-69
 
+/**
+void resetAllPins();
+
+*/
 
 // reset the 
 void resetAllPins(){
-  /*
-  for(int i=0; i<70; i++)
-  {  pinMode(i, OUTPUT); 
-    digitalWrite(i, HIGH);
-    
-  }*/
-  pinMode(A8, INPUT_PULLUP); 
-  //digitalWrite(A8, HIGH);
-  pinMode(A9, INPUT_PULLUP); 
-  //digitalWrite(A9, HIGH);
-  /*
   //camera 
   for(int i=0; i<numCameraPin; i++)
   {
-    cameraPin[i]  = i;
     int pinIdx = cameraPin[i];
     pinMode(pinIdx, OUTPUT);  
     digitalWrite(pinIdx, HIGH);
@@ -32,83 +30,72 @@ void resetAllPins(){
   //hotshoe
   for(int i=0; i<numHotshoePin; i++)
   {
-    hotshoePin[i] = i + numCameraPin;
     int pinIdx = hotshoePin[i];
-    pinMode(pinIdx, INPUT);  
-    digitalWrite(pinIdx, HIGH);
+    pinMode(pinIdx, INPUT_PULLUP);  
   }
   //flash
   for(int i=0; i<numFlashPin; i++)
   {
-    flashPin[i] = i + numCameraPin + numHotshoePin;
     int pinIdx = flashPin[i];
     pinMode(pinIdx, OUTPUT); 
     digitalWrite(pinIdx, HIGH);
-  }*/
+  }
 }
 
 
 void setup() {
   Serial.begin(115200);
-  
-  pinMode(A7, OUTPUT); 
-  digitalWrite(A7, LOW);
-  pinMode(A8, OUTPUT); 
-  digitalWrite(A8, LOW);
-  pinMode(A9, OUTPUT); 
-  digitalWrite(A9, LOW);
-  
-  //resetAllPins();
+  for(int i=0; i<numCameraPin; i++)  {cameraPin[i] = i + 2;}
+  for(int i=0; i<numHotshoePin; i++) {hotshoePin[i] = i + 2 + numCameraPin;}
+  for(int i=0; i<numFlashPin; i++)   {flashPin[i] = i + 2 + numCameraPin + numHotshoePin;}
+    
+  resetAllPins();
 }
 
 
-//0-56, 1-57, ..., 13-69
+//flash0-D56, flash1-D57, ..., flash13-D69
 void triggerFlash(int idx)
 {
-
   digitalWrite(flashPin[idx], LOW);
   delay(1);
   digitalWrite(flashPin[idx], HIGH);
 }
 
 
+boolean hotshoeReady(int hotshoeIdx[], int count)
+{
+  for(int i=0; i<count; i++)
+  {
+    int pinIdx = hotshoeIdx[i];
+    if(!digitalRead(hotshoePin[pinIdx])) {return false;}
+  }
+  return true;
+}
+
+
 void fyffe_configure()
 {
-  unsigned long startTime = micros();
+  int group0[7] = {0,1,2,3,4,5,6};
+  int group1[7] = {17,18,19,20,21,22,23};
+  int group2[4] = {7,10,12,14};
+  int group3[4] = {9,11,13,16};
 
-  //group 0 cameras
-  for(int i=0; i<=6; i++)   { 
-    digitalWrite(cameraPin[i], LOW);
-  }
+  for(int i=0; i<7; i++) {digitalWrite(cameraPin[group0[i]], LOW);}
   delay(15);
-  //group 1 cameras
-  for(int i=17; i<=23; i++) { 
-    digitalWrite(cameraPin[i], LOW);
-  }
+  for(int i=0; i<7; i++) {digitalWrite(cameraPin[group1[i]], LOW);}
   delay(15);
-
-  digitalWrite(cameraPin[7],  LOW); 
-  digitalWrite(cameraPin[10], LOW); 
-  digitalWrite(cameraPin[12], LOW); 
-  digitalWrite(cameraPin[14], LOW);
+  for(int i=0; i<4; i++) {digitalWrite(cameraPin[group2[i]], LOW);}
   delay(15);
-
-  digitalWrite(cameraPin[9],  LOW); 
-  digitalWrite(cameraPin[11], LOW); 
-  digitalWrite(cameraPin[13], LOW); 
-  digitalWrite(cameraPin[16], LOW);
+  for(int i=0; i<4; i++) {digitalWrite(cameraPin[group3[i]], LOW);}
   delay(15);
-
   digitalWrite(cameraPin[8], LOW); 
   delay(15);
-
   digitalWrite(cameraPin[15], LOW);
   delay(15);
 
-  //wait for hotshoe
-  ////digitalWrite(13, HIGH); delay(100); digitalWrite(13, LOW); delay(100);
-  //flash 0
-  boolean flag = true;
+  //flash0
+  boolean flag = true; 
+  unsigned long startTime = micros(); 
   while(flag)
   {
     if((micros()-startTime)/1000 > 1000) { 
@@ -116,16 +103,12 @@ void fyffe_configure()
       resetAllPins(); 
       return;
     }
-
-    if(!digitalRead(hotshoePin[0]) && !digitalRead(hotshoePin[1]) && !digitalRead(hotshoePin[2]) && !digitalRead(hotshoePin[3]) &&  
-      !digitalRead(hotshoePin[4]) && !digitalRead(hotshoePin[5]) && !digitalRead(hotshoePin[6]))
+    
+    if(hotshoeReady(group0, 7))
     {
       delay(2);
-      Serial.println((micros()-startTime)/1000.0);
-      if(!digitalRead(hotshoePin[0]) && !digitalRead(hotshoePin[1]) && !digitalRead(hotshoePin[2]) && !digitalRead(hotshoePin[3]) &&  
-        !digitalRead(hotshoePin[4]) && !digitalRead(hotshoePin[5]) && !digitalRead(hotshoePin[6]))
+      if(hotshoeReady(group0, 7))
       {
-        Serial.println((micros()-startTime)/1000.0);
         triggerFlash(0);        
         flag = false;
       }
@@ -134,6 +117,7 @@ void fyffe_configure()
 
   //flash 1
   flag = true;
+  startTime = micros(); 
   while(flag)
   {
     if((micros()-startTime)/1000 > 1000) { 
@@ -142,12 +126,10 @@ void fyffe_configure()
       return;
     }
 
-    if(!digitalRead(hotshoePin[17]) && !digitalRead(hotshoePin[18]) && !digitalRead(hotshoePin[19]) && !digitalRead(hotshoePin[20]) &&  
-      !digitalRead(hotshoePin[21]) && !digitalRead(hotshoePin[22]) && !digitalRead(hotshoePin[23]))
+    if(hotshoeReady(group1, 7))
     {
       delay(2);
-      if(!digitalRead(hotshoePin[17]) && !digitalRead(hotshoePin[18]) && !digitalRead(hotshoePin[19]) && !digitalRead(hotshoePin[20]) &&  
-        !digitalRead(hotshoePin[21]) && !digitalRead(hotshoePin[22]) && !digitalRead(hotshoePin[23]))
+      if(hotshoeReady(group1, 7))
       {
         triggerFlash(1);        
         flag = false;
@@ -157,6 +139,7 @@ void fyffe_configure()
 
   //flash 2
   flag = true;
+  startTime = micros(); 
   while(flag)
   {
     if((micros()-startTime)/1000 > 1000) { 
@@ -165,10 +148,10 @@ void fyffe_configure()
       return;
     }
 
-    if(!digitalRead(hotshoePin[7]) && !digitalRead(hotshoePin[10]) && !digitalRead(hotshoePin[12]) && !digitalRead(hotshoePin[14]))
+    if(hotshoeReady(group2, 4))
     {
       delay(2);
-      if(!digitalRead(hotshoePin[7]) && !digitalRead(hotshoePin[10]) && !digitalRead(hotshoePin[12]) && !digitalRead(hotshoePin[14]))
+      if(hotshoeReady(group2, 4))
       {
         triggerFlash(2);        
         flag = false;
@@ -178,6 +161,7 @@ void fyffe_configure()
 
   //flash 3
   flag = true;
+  startTime = micros(); 
   while(flag)
   {
     if((micros()-startTime)/1000 > 1000) { 
@@ -186,10 +170,10 @@ void fyffe_configure()
       return;
     }
 
-    if(!digitalRead(hotshoePin[9]) && !digitalRead(hotshoePin[11]) && !digitalRead(hotshoePin[13]) && !digitalRead(hotshoePin[16]))
+    if(hotshoeReady(group3, 4))
     {
       delay(2);
-      if(!digitalRead(hotshoePin[9]) && !digitalRead(hotshoePin[11]) && !digitalRead(hotshoePin[13]) && !digitalRead(hotshoePin[16]))
+      if(hotshoeReady(group3, 4))
       {
         triggerFlash(3);        
         flag = false;
@@ -199,6 +183,7 @@ void fyffe_configure()
 
   //flash 4
   flag = true;
+  startTime = micros(); 
   while(flag)
   {
     if((micros()-startTime)/1000 > 1000) { 
@@ -220,6 +205,7 @@ void fyffe_configure()
 
   //flash 5
   flag = true;
+  startTime = micros(); 
   while(flag)
   {
     if((micros()-startTime)/1000 > 1000) { 
@@ -239,6 +225,7 @@ void fyffe_configure()
     }
   }
 
+  //finish
   delay(200);
   resetAllPins();
 }
@@ -333,7 +320,10 @@ void burst_mode()
 
 void loop() 
 {
-  unsigned long time = micros();
+  unsigned long time = micros();  
+  
+  int idx_debug;
+  int delaytime_debug;
 
   while (Serial.available() > 0)
   {
@@ -354,7 +344,17 @@ void loop()
       Serial.println("dense capture configuration");
       burst_mode();
       break;
-
+      
+    case 100:   //100,4,100
+      idx_debug = Serial.parseInt();
+      delaytime_debug = Serial.parseInt();
+      digitalWrite(idx_debug, LOW);
+      delay(delaytime_debug);
+      digitalWrite(idx_debug, HIGH);
+      
+      Serial.println(idx_debug);
+      Serial.println(delaytime_debug);
+      
     default:
       break;
 
@@ -362,4 +362,8 @@ void loop()
 
   }//end while
 }//end loop function
+
+
+
+
 
