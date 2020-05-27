@@ -1,31 +1,25 @@
 # Camera_Flash_Synchronizer_Arduino
+The code is used to trigger the Canon Cameras and the flash lights.
+
+## How to install
+1. `sudo apt-get install arduino`
+2. `Tools -> Board -> Choose Arduino Mega 2560`
+3. if cannot open the serial port, try `sudo arduino` 
 
 
-# How to use
-sudo apt-get install arduino
-
-Tools -> Board -> Arduino Mega 2560
-
-# Problems
-
-if cannot open the serial port, try 'sudo arduino' 
-
-
-# Pin setting
-
+## Pin setting
 1. 26 cameraPin:  D2  - D27      (pin13 error, skip. change camera11 from pin13 to pin27)
 2. 26 hotshoePin: D28 - D53
 3. 16 flashPin:   D54 - D69
+[Notice] Serial Communication Usage: RX0(D0) TX0(D1)
 
-[Notice] Serial Communication: RX0(D0) TX0(D1)
 
-
-# Pin Value Initialization
-1. D2  - D27: pinMode(OUTPUT), High
+## Pin Value Initialization
+1. D2  - D27: pinMode(OUTPUT), init High
 2. D28 - D53: pinMode(INPUT_PULLUP)
-3. D54 - D69: pinMode(OUTPUT), HIGH
+3. D54 - D69: pinMode(OUTPUT), init HIGH
 
-# How to trigger flash
+## How to trigger flash
 ```
 void triggerFlash(int idx)
 {
@@ -35,11 +29,11 @@ void triggerFlash(int idx)
 }
 ```
 
-# Environment Light
-1-3-7-11
-0-2-4-5-6-8-9-10
+## Environment Light
+* `1-3-7-11` are used for environment lighting
+* `0-2-4-5-6-8-9-10` are used for photometric stereo
 
-# How to judge the camera status
+## How to judge the camera status
 ```
 boolean hotshoeReady(int hotshoeIdx[], int count)
 {
@@ -52,7 +46,7 @@ boolean hotshoeReady(int hotshoeIdx[], int count)
 }
 ```
 
-# Loop Mode
+## Loop Mode
 + 1 -> fyffe configuration
 + 2 -> uniform illumination (24 cameras + 4 lights)
 + 3 -> burst mode all cameras
