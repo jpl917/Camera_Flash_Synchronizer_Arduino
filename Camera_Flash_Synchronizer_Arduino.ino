@@ -219,6 +219,20 @@ void fyffe_configure()
 }
 
 
+void uniform_configure()
+{
+  delay(1000);
+  int group[32] = {0,1,-1,-1,   22,23,-1,-1,   2,3,4,-1,   19,20,21,-1,   5,6,8,-1,   15,17,18,-1,   7,10,12,14,   9,11,13,16};  //8*4
+  int flashForSpecular[8]= {0,10,2,9,4,8,5,6};
+  
+ 
+  for(int i=0; i<24; i++)   { digitalWrite(cameraPin[i], LOW); }
+  delay(200);
+  for(int i=0; i<24; i++)   { digitalWrite(cameraPin[i], HIGH); } 
+ 
+  return;
+}
+
 void uniform_fyffe_configure()
 {
   delay(1000);
@@ -279,7 +293,7 @@ void uniform_fyffe_configure()
     
     boolean triggerFlag = true;
     unsigned long startTime = micros();
-    while((micros()-startTime)/1000 < 300)
+    while((micros()-startTime)/1000 < 400)
     {
       triggerFlag = true;
       for(int j=0; j<4; j++)
@@ -322,7 +336,7 @@ void uniform_fyffe_configure()
     for(int i=1; i<8; i++)
     {
       unsigned long startTime = micros();
-      while((micros()-startTime)/1000 < 22)
+      while((micros()-startTime)/1000 < 25)
       {
         boolean triggerFlag = true;
         for(int j=0; j<4; j++)
@@ -468,10 +482,14 @@ void debug_mode_test_camera()
 
 void debug_mode_test_camera_seq()
 {
-  for(int i=0; i<24; i++)
+  int id = Serial.parseInt();
+  Serial.println(id);
+  
+  for(int i=id; i<id+1; i++)
   {
     unsigned long start_time, end_time;
     start_time = micros();
+    end_time = start_time;
     
     digitalWrite(cameraPin[i], LOW);
     
@@ -512,6 +530,11 @@ void loop()
     int choice = Serial.parseInt();
     switch(choice)
     {
+    case 0:
+      Serial.println("uniform lighting");
+      uniform_configure();
+      break;
+      
     case 1:    // not burst mode: 24 images
       Serial.println("fyffe configuration (not burst mode)");
       //fyffe_configure();
