@@ -3,10 +3,11 @@ The code is used to trigger the Canon Cameras and the flash lights.
 
 ## How to install
 1. `sudo apt-get install arduino`
-2. `Tools -> Board -> Choose Arduino Mega 2560`
+2. `Tools -> Board -> Choose Arduino Mega 2560 or Mega ADK`
 3. `Serial Port -> /dev/ttyACM0`
 4. `Serial Monitor -> 115200 baud`
-5. if cannot open the serial port, try `sudo arduino` 
+5. `Programmer -> USBasp`
+6. if cannot open the serial port, `sudo arduino` 
 
 
 ## Pin setting
