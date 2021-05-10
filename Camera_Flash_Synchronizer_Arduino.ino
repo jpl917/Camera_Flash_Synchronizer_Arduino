@@ -227,9 +227,10 @@ void uniform_configure()
   
  
   for(int i=0; i<24; i++)   { digitalWrite(cameraPin[i], LOW); }
-  delay(200);
+  delay(400);
   for(int i=0; i<24; i++)   { digitalWrite(cameraPin[i], HIGH); } 
- 
+  delay(200);
+  resetAllPins();
   return;
 }
 
@@ -326,11 +327,11 @@ void uniform_fyffe_configure()
       }
     }
     
-    if(triggerFlag == false){
-      Serial.println("Error");
-      resetAllPins();
-      return;
-    }
+    //if(triggerFlag == false){
+    //  Serial.println("Error");
+    //  resetAllPins();
+    //  return;
+    //}
     
     
     for(int i=1; i<8; i++)
@@ -378,68 +379,208 @@ void uniform_fyffe_configure()
   return;
 }
 
+void all_fyffe_configure()
+{
+  delay(1000);
+  int group_geo[8] = {1,5,6,10,13,17,18,23}; // 6 cameras under uniform lighting, used for geometry
+  int flashForDiffuse[4] = {0,3,8,10};
+  
+  //later 18 cameras under fyffe lighting, used for material
+  int group_mat[24] = {-1,3,4,  0,2,-1,  -1,8,11,  7,-1,14,  9,-1,16,  12,-1,15,  19,-1,22,  20,21,-1};  //8*3
+  int flashForSpecular[8]= {1,2,4,5,6,7,9,11};
+  
+  
+  if(true)
+  {
+    // for flash
+    Serial.println(micros()/1000);
+    int camera_skip_time = 20;
+    for(int i=0; i<8; i++){
+      int idx = group_geo[i];
+      digitalWrite(cameraPin[idx], LOW);
+    }
+    delay(camera_skip_time);
+    
+    for(int i=0; i<8; i++)
+    {
+      for(int j=0; j<3; j++)
+      {
+        int idx = group_mat[3*i+j];
+        if(idx == -1) continue;
+        digitalWrite(cameraPin[idx], LOW);
+      }
+      if(i!=7) delay(camera_skip_time);
+    }
+    Serial.println(micros()/1000);
+    
+    //flash 0 wating for the signal of camera shutter
+    boolean triggerFlag = true;
+    unsigned long startTime = micros();
+    while((micros()-startTime)/1000 < 400)
+    {
+      triggerFlag = true;
+      for(int j=0; j<8; j++)
+      {
+        int idx = group_geo[j];
+        if(idx == -1) continue;
+        if(digitalRead(hotshoePin[idx])) {triggerFlag = false;}
+      }
+      if(triggerFlag)
+      {
+        Serial.print("0: ");
+        Serial.print(micros()/1000);
+        Serial.print(" -> flash:  ");
+        for(int j=0; j<4; j++){
+          int idx = flashForDiffuse[j];
+          Serial.print(idx);
+          Serial.print(" ");
+          digitalWrite(flashPin[idx], LOW);
+          delay(1);
+          digitalWrite(flashPin[idx], HIGH);
+        }
+        Serial.println("");
+        for(int j=0; j<8;j++){
+          int idx = group_geo[j];
+          digitalWrite(cameraPin[idx], HIGH);
+        }
+        
+        break;
+      }
+    }
+    
+    if(triggerFlag == false){
+      Serial.println("Error");
+      resetAllPins();
+      return;
+    }
+    
+    //camera 0 shutter signal arriving, 
+    for(int i=0; i<8; i++)
+    {
+      
+      startTime = micros();
+      
+      while((micros()-startTime)/1000 < 25)
+      {
+        triggerFlag = true;
+        
+        for(int j=0; j<3; j++)
+        {
+          int idx = group_mat[3*i+j];
+          if(idx == -1) continue;
+          if(digitalRead(hotshoePin[idx])) {triggerFlag = false;}
+        }
+        delay(1);
+        
+        if(triggerFlag)
+        {
+          Serial.print(i+1);
+          Serial.print(": ");
+          Serial.print(micros()/1000);
+          
+          int idx = flashForSpecular[i];
+          
+          Serial.print(" -> flash:  ");
+          Serial.println(idx);
+          
+          digitalWrite(flashPin[idx], LOW);
+          delay(1);
+          digitalWrite(flashPin[idx], HIGH);
+          
+          for(int j=0; j<3; j++)
+          {
+            int idx = group_mat[3*i+j];
+            if(idx == -1) continue;
+            digitalWrite(cameraPin[idx], HIGH);
+          }
+          
+          break;
+        }
+      }
+    }
+  }
+  
+  resetAllPins();
+  return;
+}
 
 void burst_mode()
 {
   delay(1000);
-  int flashForUniform[4] = {1,3,7,11};
-  int flashForSpecular[13]= {2,9,4,8,5,6,100,0,10,12,13,14,15};
+  int flashForUniform = 4;
   
   for(int i=0; i<24; i++)   { digitalWrite(cameraPin[i], LOW); }
+  delay(20);
+  digitalWrite(flashPin[flashForUniform], LOW);
+  delay(1);
+  digitalWrite(flashPin[flashForUniform], HIGH);
+  delay(280);
+  for(int i=0; i<24; i++)   { digitalWrite(cameraPin[i], HIGH); }
+  
   
   int flashCount = 0;
   
   unsigned long startTime = micros();
-  while((micros()-startTime)/1000 < 1500)
-  {
-    boolean triggerFlag = true;
-    for(int i=0; i<24; i++)
-    {
-       if(digitalRead(hotshoePin[i]))
-        {
-          triggerFlag = false;
-          break;
-        }
-    }
-    if(triggerFlag)
-    {
-      if(flashCount > 6) break;
+  //while((micros()-startTime)/1000 < 1000)
+  //{
+  //  boolean triggerFlag = true;
+  //  for(int i=0; i<24; i++)
+  //  {
+  //     if(digitalRead(hotshoePin[i]))
+  //      {
+  //        triggerFlag = false;
+  //        break;
+  //      }
+  //  }
+  //  if(triggerFlag)
+  //  {
+      //if(flashCount > 6) break;
+  //    for(int j=0; j<4; j++){
+  //      int idx = flashForUniform[j];
+  //      digitalWrite(flashPin[idx], LOW);
+  //      delay(1);
+  //      digitalWrite(flashPin[idx], HIGH);
+  //    }
+  //    Serial.println("okay");
+  //    for(int i=0; i<24; i++)   { digitalWrite(cameraPin[i], HIGH); }
+
+  //    break;
+  //  }
+      //int triggerId = flashForUniform[flashCount];
       
-      int triggerId = flashForSpecular[flashCount];
-      
-      if (triggerId != 100)
-      {
-        digitalWrite(flashPin[triggerId], LOW);
-        delay(1);
-        digitalWrite(flashPin[triggerId], HIGH);
-      }
-      else
-      {
-        digitalWrite(flashPin[1],  LOW);
-        digitalWrite(flashPin[3],  LOW);
-        digitalWrite(flashPin[7],  LOW);
-        digitalWrite(flashPin[11], LOW);
-        delay(1);
-        digitalWrite(flashPin[1],  HIGH);
-        digitalWrite(flashPin[3],  HIGH);
-        digitalWrite(flashPin[7],  HIGH);
-        digitalWrite(flashPin[11], HIGH);
-      }
+      //if (triggerId != 100)
+      //{
+      //  digitalWrite(flashPin[triggerId], LOW);
+      //  delay(1);
+      //  digitalWrite(flashPin[triggerId], HIGH);
+      //}
+      //else
+      //{
+      //  digitalWrite(flashPin[1],  LOW);
+      //  digitalWrite(flashPin[3],  LOW);
+      //  digitalWrite(flashPin[7],  LOW);
+      //  digitalWrite(flashPin[11], LOW);
+      //  delay(1);
+      //  digitalWrite(flashPin[1],  HIGH);
+      //  digitalWrite(flashPin[3],  HIGH);
+      //  digitalWrite(flashPin[7],  HIGH);
+      //  digitalWrite(flashPin[11], HIGH);
+      //}
       
       
       //Serial.println((micros()-startTime)/1000.0);
         
         
-      flashCount = flashCount+1;
-      delay(100);
-    }
-   
-  }
+      //flashCount = flashCount+1;
+      //delay(100);
+  //}
+  //for(int i=0; i<24; i++)   { digitalWrite(cameraPin[i], HIGH); }
   
   Serial.println();
   Serial.println("----------------Done------------------");
   Serial.println((micros()-startTime)/1000.0);
-  for(int i=0; i<24; i++)   { digitalWrite(cameraPin[i], HIGH); }
+  resetAllPins();
+  return;
     
 }
 
@@ -515,6 +656,18 @@ void debug_mode_test_camera_seq()
   }
 }
 
+void video()
+{
+  for(int idx=0; idx<24; idx++) digitalWrite(cameraPin[idx], LOW);
+  delay(200);
+  for(int idx=0; idx<24; idx++) digitalWrite(cameraPin[idx], HIGH);
+  
+  delay(60000);
+  
+  for(int idx=0; idx<24; idx++) digitalWrite(cameraPin[idx], LOW);
+  delay(200);
+  for(int idx=0; idx<24; idx++) digitalWrite(cameraPin[idx], HIGH);
+}
 
 
 void loop() 
@@ -537,17 +690,18 @@ void loop()
       
     case 1:    // not burst mode: 24 images
       Serial.println("fyffe configuration (not burst mode)");
-      //fyffe_configure();
+      fyffe_configure();
       break;
       
     case 2:    // burst mode: 24 + 24 images
       Serial.println("uniform lighting with fyffe configuration (burst mode)");
       uniform_fyffe_configure();
+      //all_fyffe_configure();
       break;
   
     case 3:    // burst mode: 144 + 24 images 
       Serial.println("burst mode all cameras");
-      //burst_mode();
+      burst_mode();
       break;
       
     case 100:   
@@ -568,6 +722,11 @@ void loop()
     case 103:
       Serial.println("Function: debug_mode_test_camera sequence");
       debug_mode_test_camera_seq();
+      break;
+      
+    case 104:
+      Serial.println("Video");
+      video();
       break;
       
       
